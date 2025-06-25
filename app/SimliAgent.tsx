@@ -70,16 +70,20 @@ const SimliAgent: React.FC<SimliAgentProps> = ({ onStart, onClose }) => {
       if (newCallObject === undefined) {
         newCallObject = DailyIframe.createCallObject({
           videoSource: false,
-          audioSource: true,
+          audioSource: false, // Disable audio source to avoid constraints
         });
       }
 
       // Setting my default username
       newCallObject.setUserName("User");
 
-      // Join the Daily room
+      // Join the Daily room with explicit media settings
       console.log("Attempting to join room:", roomUrl);
-      await newCallObject.join({ url: roomUrl });
+      await newCallObject.join({
+        url: roomUrl,
+        startVideoOff: true,
+        startAudioOff: true,
+      });
       myCallObjRef.current = newCallObject;
       console.log("Joined the room with callObject", newCallObject);
       setCallObject(newCallObject);
@@ -103,8 +107,12 @@ const SimliAgent: React.FC<SimliAgentProps> = ({ onStart, onClose }) => {
       let chatbotFound: boolean = false;
 
       const participants = myCallObjRef.current.participants();
-      for (const [key, participant] of Object.entries(participants)) {
+      console.log("Current participants:", Object.keys(participants).length, participants);
+
+      for (const [, participant] of Object.entries(participants)) {
+        console.log("Checking participant:", participant.user_name, participant.session_id);
         if (participant.user_name === "Chatbot") {
+          console.log("Chatbot found! Setting up avatar...");
           setChatbotId(participant.session_id);
           chatbotFound = true;
           setIsLoading(false);
@@ -114,12 +122,14 @@ const SimliAgent: React.FC<SimliAgentProps> = ({ onStart, onClose }) => {
         }
       }
       if (!chatbotFound) {
+        console.log("Chatbot not found yet, retrying in 500ms...");
         setTimeout(loadChatbot, 500);
       }
     } else {
+      console.log("Call object not ready, retrying in 500ms...");
       setTimeout(loadChatbot, 500);
     }
-  };  
+  };
 
   /**
    * Leave the room
