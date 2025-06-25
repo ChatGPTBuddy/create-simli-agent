@@ -42,10 +42,10 @@ const SimliAgent: React.FC<SimliAgentProps> = ({ onStart, onClose }) => {
       },
       body: JSON.stringify({
         apiKey: SIMLI_API_KEY,
-        faceId: "",
-        voiceId: "",
-        firstMessage: "",
-        systemPrompt: "",
+        faceId: "5cfd883f-7a7a-4fc8-a3d4-692b0ac636cc",
+        voiceId: "79a125e8-cd45-4c13-8a67-188112f4dd22", // Default voice
+        firstMessage: "Hello! I'm your Simli AI agent. How can I help you today?",
+        systemPrompt: "You are a helpful AI assistant. Be friendly, concise, and engaging in your responses.",
       }),
     });
 
