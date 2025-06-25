@@ -35,68 +35,47 @@ const SimliAgent: React.FC<SimliAgentProps> = ({ onStart, onClose }) => {
     // 3- PASTE YOUR CODE OUTPUT FROM SIMLI BELOW 👇
     /**********************************/
 
-    try {
-      const response = await fetch("https://api.simli.ai/startE2ESession", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          apiKey: SIMLI_API_KEY,
-          faceId: "5cfd883f-7a7a-4fc8-a3d4-692b0ac636cc",
-          voiceId: "79a125e8-cd45-4c13-8a67-188112f4dd22", // Default voice
-          firstMessage: "Hello! I'm your Simli AI agent. How can I help you today?",
-          systemPrompt: "You are a helpful AI assistant. Be friendly, concise, and engaging in your responses.",
-        }),
+    const response = await fetch("https://api.simli.ai/startE2ESession", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        apiKey: SIMLI_API_KEY,
+        faceId: "5cfd883f-7a7a-4fc8-a3d4-692b0ac636cc",
+        voiceId: "79a125e8-cd45-4c13-8a67-188112f4dd22", // Default voice
+        firstMessage: "Hello! I'm your Simli AI agent. How can I help you today?",
+        systemPrompt: "You are a helpful AI assistant. Be friendly, concise, and engaging in your responses.",
+      }),
+    });
+
+    const data = await response.json();
+    const roomUrl = data.roomUrl;
+
+    /**********************************/
+    
+    // Print the API response 
+    console.log("API Response", data);
+
+    // Create a new Daily call object
+    let newCallObject = DailyIframe.getCallInstance();
+    if (newCallObject === undefined) {
+      newCallObject = DailyIframe.createCallObject({
+        videoSource: false,
       });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log("API Response", data);
-
-      if (!data.roomUrl) {
-        throw new Error("No room URL received from API");
-      }
-
-      const roomUrl = data.roomUrl;
-
-      /**********************************/
-
-      // Create a new Daily call object
-      let newCallObject = DailyIframe.getCallInstance();
-      if (newCallObject === undefined) {
-        newCallObject = DailyIframe.createCallObject({
-          videoSource: false,
-          audioSource: false, // Disable audio source to avoid constraints
-        });
-      }
-
-      // Setting my default username
-      newCallObject.setUserName("User");
-
-      // Join the Daily room with explicit media settings
-      console.log("Attempting to join room:", roomUrl);
-      await newCallObject.join({
-        url: roomUrl,
-        startVideoOff: true,
-        startAudioOff: true,
-      });
-      myCallObjRef.current = newCallObject;
-      console.log("Joined the room with callObject", newCallObject);
-      setCallObject(newCallObject);
-
-      // Start checking if Simli's Chatbot Avatar is available
-      loadChatbot();
-
-    } catch (error) {
-      console.error("Error in handleJoinRoom:", error);
-      setIsLoading(false);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert(`Failed to start session: ${errorMessage}`);
     }
+
+    // Setting my default username
+    newCallObject.setUserName("User");
+
+    // Join the Daily room
+    await newCallObject.join({ url: roomUrl });
+    myCallObjRef.current = newCallObject;
+    console.log("Joined the room with callObject", newCallObject);
+    setCallObject(newCallObject);
+
+    // Start checking if Simli's Chatbot Avatar is available
+    loadChatbot();
   };  
 
   /**
@@ -107,12 +86,8 @@ const SimliAgent: React.FC<SimliAgentProps> = ({ onStart, onClose }) => {
       let chatbotFound: boolean = false;
 
       const participants = myCallObjRef.current.participants();
-      console.log("Current participants:", Object.keys(participants).length, participants);
-
-      for (const [, participant] of Object.entries(participants)) {
-        console.log("Checking participant:", participant.user_name, participant.session_id);
+      for (const [key, participant] of Object.entries(participants)) {
         if (participant.user_name === "Chatbot") {
-          console.log("Chatbot found! Setting up avatar...");
           setChatbotId(participant.session_id);
           chatbotFound = true;
           setIsLoading(false);
@@ -122,14 +97,12 @@ const SimliAgent: React.FC<SimliAgentProps> = ({ onStart, onClose }) => {
         }
       }
       if (!chatbotFound) {
-        console.log("Chatbot not found yet, retrying in 500ms...");
         setTimeout(loadChatbot, 500);
       }
     } else {
-      console.log("Call object not ready, retrying in 500ms...");
       setTimeout(loadChatbot, 500);
     }
-  };
+  };  
 
   /**
    * Leave the room
