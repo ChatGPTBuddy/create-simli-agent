@@ -35,47 +35,64 @@ const SimliAgent: React.FC<SimliAgentProps> = ({ onStart, onClose }) => {
     // 3- PASTE YOUR CODE OUTPUT FROM SIMLI BELOW 👇
     /**********************************/
 
-    const response = await fetch("https://api.simli.ai/startE2ESession", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        apiKey: SIMLI_API_KEY,
-        faceId: "5cfd883f-7a7a-4fc8-a3d4-692b0ac636cc",
-        voiceId: "79a125e8-cd45-4c13-8a67-188112f4dd22", // Default voice
-        firstMessage: "Hello! I'm your Simli AI agent. How can I help you today?",
-        systemPrompt: "You are a helpful AI assistant. Be friendly, concise, and engaging in your responses.",
-      }),
-    });
-
-    const data = await response.json();
-    const roomUrl = data.roomUrl;
-
-    /**********************************/
-    
-    // Print the API response 
-    console.log("API Response", data);
-
-    // Create a new Daily call object
-    let newCallObject = DailyIframe.getCallInstance();
-    if (newCallObject === undefined) {
-      newCallObject = DailyIframe.createCallObject({
-        videoSource: false,
+    try {
+      const response = await fetch("https://api.simli.ai/startE2ESession", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          apiKey: SIMLI_API_KEY,
+          faceId: "5cfd883f-7a7a-4fc8-a3d4-692b0ac636cc",
+          voiceId: "79a125e8-cd45-4c13-8a67-188112f4dd22", // Default voice
+          firstMessage: "Hello! I'm your Simli AI agent. How can I help you today?",
+          systemPrompt: "You are a helpful AI assistant. Be friendly, concise, and engaging in your responses.",
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log("API Response", data);
+
+      if (!data.roomUrl) {
+        throw new Error("No room URL received from API");
+      }
+
+      const roomUrl = data.roomUrl;
+
+      /**********************************/
+
+      // Create a new Daily call object
+      let newCallObject = DailyIframe.getCallInstance();
+      if (newCallObject === undefined) {
+        newCallObject = DailyIframe.createCallObject({
+          videoSource: false,
+          audioSource: true,
+        });
+      }
+
+      // Setting my default username
+      newCallObject.setUserName("User");
+
+      // Join the Daily room
+      console.log("Attempting to join room:", roomUrl);
+      await newCallObject.join({ url: roomUrl });
+      myCallObjRef.current = newCallObject;
+      console.log("Joined the room with callObject", newCallObject);
+      setCallObject(newCallObject);
+
+      // Start checking if Simli's Chatbot Avatar is available
+      loadChatbot();
+
+    } catch (error) {
+      console.error("Error in handleJoinRoom:", error);
+      setIsLoading(false);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to start session: ${errorMessage}`);
     }
-
-    // Setting my default username
-    newCallObject.setUserName("User");
-
-    // Join the Daily room
-    await newCallObject.join({ url: roomUrl });
-    myCallObjRef.current = newCallObject;
-    console.log("Joined the room with callObject", newCallObject);
-    setCallObject(newCallObject);
-
-    // Start checking if Simli's Chatbot Avatar is available
-    loadChatbot();
   };  
 
   /**
